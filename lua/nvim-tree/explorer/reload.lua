@@ -65,6 +65,7 @@ function M.reload(node, status)
       local n = nodes_by_path[abs]
       if n then
         n.executable = builders.is_executable(abs, n.extension or "")
+        n.fs_stat = uv.fs_stat(abs)
       end
     end
   end
