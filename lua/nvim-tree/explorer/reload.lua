@@ -18,6 +18,15 @@ local function update_status(nodes_by_path, node_ignored, status)
   end
 end
 
+local function table_find(table, value)
+  for i, v in ipairs(table) do
+    if v == value then
+      return i
+    end
+  end
+  return nil
+end
+
 function M.reload(node, status)
   local cwd = node.link_to or node.absolute_path
   local handle = uv.fs_scandir(cwd)
@@ -45,6 +54,20 @@ function M.reload(node, status)
     t = t or (uv.fs_stat(abs) or {}).type
     if not filters.should_ignore(abs) and not filters.should_ignore_git(abs, status.files) then
       child_names[abs] = true
+
+      -- Recreate node if type changes.
+      if nodes_by_path[abs] then
+        local n = nodes_by_path[abs]
+
+        if n.type ~= t then
+          local idx = table_find(node.nodes, n)
+          if idx then
+            table.remove(node.nodes, idx)
+          end
+          nodes_by_path[abs] = nil
+        end
+      end
+
       if not nodes_by_path[abs] then
         if t == "directory" and uv.fs_access(abs, "R") then
           local folder = builders.folder(node, abs, name)
